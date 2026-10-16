@@ -9,9 +9,15 @@ jobs:
       - uses: actions/checkout@v4
       - run: brew install xcodegen
       - run: xcodegen generate
-      - run: >
-          xcodebuild test
-          -project PianoLoudness.xcodeproj
-          -scheme PianoLoudness
-          -destination 'platform=iOS Simulator,name=iPhone 16'
-          CODE_SIGNING_ALLOWED=NO
+      - name: Test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project PianoLoudness.xcodeproj \
+            -scheme PianoLoudness \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee xcodebuild.log
+      - name: Summarize
+        if: always()
+        run: |
+          grep -E "error:|Test Case .* (passed|failed)|Executed [0-9]+ tests" xcodebuild.log | sort -u | head -9 | while IFS= read -r line; do echo "::notice::$line"; done
